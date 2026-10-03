@@ -193,6 +193,8 @@ footer{position:relative;z-index:1;padding-block:30px 60px;color:var(--muted);fo
 body{top:0!important}
 font[style]{background:none!important;box-shadow:none!important}
 #gt_box{display:none}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bgrid input:last-child{grid-column:1/-1}@media(max-width:600px){.bgrid{grid-template-columns:1fr}}
+#brief textarea{width:100%;resize:vertical;min-height:96px}
 </style>
 <div id="glow" aria-hidden="true"></div>
 <nav id="nav"><div class="wrap"><a class="logo notranslate" translate="no" href="#top">Praveen Kumar B <span>· Atelier</span></a>
@@ -293,13 +295,16 @@ font[style]{background:none!important;box-shadow:none!important}
    <span class="fl">Number of units</span><div class="qty"><button type="button" id="qm" aria-label="Fewer">−</button><output id="qv">5</output><button type="button" id="qp" aria-label="More">+</button></div>
    <span class="fl">What do you have now?</span><div class="chipset" id="bs"></div>
    <span class="fl">When do you need drawings?</span><div class="chipset" id="bw"></div>
-   <span class="fl">Brand / project and your name</span><input id="bn" placeholder="e.g. New boutique, Riyadh · Sara, Store Development">
+   <span class="fl">Tell me about the requirement</span><textarea id="bd" rows="4" placeholder="Sizes, materials, finishes, site details, anything I should know" aria-label="Requirement details"></textarea>
+   <span class="fl">Brand / project</span><input id="bn" placeholder="e.g. New boutique, Riyadh">
+   <span class="fl">Your details</span>
+   <div class="bgrid"><input id="bnm" placeholder="Your name *" autocomplete="name" aria-label="Your name"><input id="bem" type="email" placeholder="Email *" autocomplete="email" aria-label="Email"><input id="bph" type="tel" placeholder="WhatsApp number with country code *" autocomplete="tel" aria-label="WhatsApp number"></div>
   </div>
   <div style="display:flex;flex-direction:column;gap:14px">
    <span class="fl" style="margin-top:0">Your brief</span>
    <div class="preview" id="bp"></div>
-   <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="bsave" type="button">Submit brief</button><a class="btn ghost" id="bwa" target="_blank" rel="noopener">Also send on WhatsApp</a><button class="btn ghost" id="bcp" type="button">Copy</button></div><p class="muted" id="bmsg" style="font-size:14px;margin:0;color:var(--gold-2);min-height:1.2em" aria-live="polite"></p>
-   <p class="muted" style="font-size:13px;margin:0">Attach your renders or drawings in the WhatsApp chat. You get a fixed quote back.</p>
+   <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="bsave" type="button">Submit brief</button><button class="btn ghost" id="bcp" type="button">Copy</button></div><p class="muted" id="bmsg" style="font-size:14px;margin:0;color:var(--gold-2);min-height:1.2em" aria-live="polite"></p>
+   <p class="muted" style="font-size:13px;margin:0">Your request comes straight to me. I reply by email with a fixed quote.</p>
   </div>
  </div>
 </section>
@@ -499,15 +504,22 @@ $('mq').innerHTML=[...BR,...BR].map(b=>`<span>${b}</span>`).join('');
  const mk=(id,arr,multi,key)=>{const el=$(id);el.innerHTML=arr.map(a=>`<button type="button" aria-pressed="${multi?sel.t.has(a):sel[key]===a}">${a}</button>`).join('');
   el.onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=b.textContent;if(multi){sel.t.has(v)?sel.t.delete(v):sel.t.add(v);b.setAttribute('aria-pressed',sel.t.has(v))}else{sel[key]=v;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))}$('bo').hidden=!sel.t.has('Others');if(v==='Others'&&sel.t.has('Others'))$('bo').focus();upd()}};
  mk('bt',T,true);mk('bs',S,false,'s');mk('bw',Wn,false,'w');
- $('qm').onclick=()=>{qty=Math.max(1,qty-1);upd()};$('qp').onclick=()=>{qty=Math.min(200,qty+1);upd()};$('bn').oninput=upd;$('bo').oninput=upd;
+ $('qm').onclick=()=>{qty=Math.max(1,qty-1);upd()};$('qp').onclick=()=>{qty=Math.min(200,qty+1);upd()};['bn','bd','bnm','bem','bph'].forEach(id=>$(id).oninput=upd);$('bo').oninput=upd;
  function needs(){return [...sel.t].map(x=>x==='Others'?('Other: '+($('bo').value.trim()||'to be described')):x).join(', ')}
- function txt(){return `Project brief for Praveen Kumar B\n\nNeed drawn: ${needs()||'—'}\nUnits: ${qty}\nWe have: ${sel.s}\nTimeline: ${sel.w}\nProject / contact: ${$('bn').value.trim()||'—'}\n\nDeliverables wanted: 3D models, manufacturing drawings, section & fixing details, material call-outs.`}
- function upd(){$('qv').textContent=qty;const t=txt();$('bp').textContent=t;$('bwa').href='https://wa.me/971529498820?text='+encodeURIComponent(t)}
+ function v(id){return $(id).value.trim()}
+ function txt(){return `Project brief for Praveen Kumar B\n\nNeed drawn: ${needs()||'—'}\nUnits: ${qty}\nWe have: ${sel.s}\nTimeline: ${sel.w}\nBrand / project: ${v('bn')||'—'}\nRequirement: ${v('bd')||'—'}\n\nName: ${v('bnm')||'—'}\nEmail: ${v('bem')||'—'}\nWhatsApp: ${v('bph')||'—'}\n\nDeliverables wanted: 3D models, manufacturing drawings, section & fixing details, material call-outs.`}
+ function upd(){$('qv').textContent=qty;const t=txt();$('bp').textContent=t}
  $('bcp').onclick=e=>copy(txt(),e.currentTarget);upd();
- $('bsave').onclick=async()=>{const c=$('bn').value.trim();if(!c){$('bn').focus();$('bmsg').textContent='Add your project and name so I can reply.';return}
-  $('bsave').disabled=true;$('bmsg').textContent='Sending…';
-  const ok=await saveToSheet({type:'brief',need:needs(),units:qty,have:sel.s,timeline:sel.w,contact:c});
-  $('bmsg').textContent=ok?'Brief received. I will reply with a fixed quote. You can also send your files on WhatsApp.':'Saving is not set up yet, so please use "Also send on WhatsApp".';$('bsave').disabled=false};
+ $('bsave').onclick=async()=>{
+  const nm=v('bnm'),em=v('bem'),ph=v('bph'),m=$('bmsg');
+  if(!nm){$('bnm').focus();m.textContent='Please add your name.';return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$('bem').focus();m.textContent='Please add a valid email.';return}
+  if(ph.replace(/\D/g,'').length<7){$('bph').focus();m.textContent='Please add your WhatsApp number with country code.';return}
+  $('bsave').disabled=true;m.textContent='Sending…';
+  const ok=await saveToSheet({type:'brief',need:needs(),units:qty,have:sel.s,timeline:sel.w,project:v('bn'),details:v('bd'),name:nm,email:em,whatsapp:ph});
+  m.textContent=ok?'Thank you, '+nm.split(' ')[0]+'. Your request has reached me. I will reply to '+em+' with a fixed quote.':'Something went wrong. Please try again in a moment.';
+  if(ok){['bd','bn','bnm','bem','bph'].forEach(id=>$(id).value='');upd()}
+  $('bsave').disabled=false};
 })();
 // ===== rating + copy =====
 function copy(t,btn){try{navigator.clipboard.writeText(t).then(()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1400)},()=>btn.textContent='Select & copy')}catch(e){btn.textContent='Select & copy'}}

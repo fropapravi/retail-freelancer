@@ -22,14 +22,18 @@ function setup() {
     }
     return sh;
   };
-  make('Briefs', ['Received', 'Need drawn', 'Units', 'Client has', 'Timeline', 'Project / contact', 'Status', 'Page']);
+  const BH = ['Received', 'Need drawn', 'Units', 'Client has', 'Timeline', 'Brand / project', 'Name', 'Email', 'WhatsApp', 'Requirement details', 'Status', 'Page'];
+  const bs = make('Briefs', BH);
+  bs.getRange(1, 1, 1, BH.length).setValues([BH]).setFontWeight('bold').setBackground('#1b1b1e').setFontColor('#c9a86a');
+  bs.setFrozenRows(1);
   const r = make('Ratings', ['Received', 'Stars', 'Name', 'Company / role', 'Comments', 'Approved (Yes/No)']);
   // dropdown for approval
   const rule = SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).build();
   r.getRange('F2:F1000').setDataValidation(rule);
   const b = ss.getSheetByName('Briefs');
   const st = SpreadsheetApp.newDataValidation().requireValueInList(['New', 'Quoted', 'Won', 'Lost'], true).build();
-  b.getRange('G2:G1000').setDataValidation(st);
+  b.getRange('G2:G1000').clearDataValidations();
+  b.getRange('K2:K1000').setDataValidation(st);
   const def = ss.getSheetByName('Sheet1');
   if (def && def.getLastRow() === 0 && ss.getSheets().length > 2) ss.deleteSheet(def);
 }
@@ -44,9 +48,15 @@ function doPost(e) {
     const ss = SpreadsheetApp.openById(SHEET_ID);
     if (d.type === 'brief') {
       ss.getSheetByName('Briefs').appendRow([new Date(), clean_(d.need, 300), Number(d.units) || '', clean_(d.have, 80),
-        clean_(d.timeline, 80), clean_(d.contact, 300), 'New', clean_(d.page, 200)]);
-      MailApp.sendEmail(NOTIFY_EMAIL, 'New project brief: ' + clean_(d.contact, 80),
-        'Need drawn: ' + d.need + '\nUnits: ' + d.units + '\nClient has: ' + d.have + '\nTimeline: ' + d.timeline + '\nProject / contact: ' + d.contact);
+        clean_(d.timeline, 80), clean_(d.project, 200), clean_(d.name, 100), clean_(d.email, 150), clean_(d.whatsapp, 40),
+        String(d.details == null ? '' : d.details).replace(/^[=+\-@]/, "'").slice(0, 2000), 'New', clean_(d.page, 200)]);
+      const body = 'New project request from your website\n\n' +
+        'Name: ' + d.name + '\nEmail: ' + d.email + '\nWhatsApp: ' + d.whatsapp + '\nBrand / project: ' + (d.project || '-') +
+        '\n\nNeed drawn: ' + d.need + '\nUnits: ' + d.units + '\nClient has: ' + d.have + '\nTimeline: ' + d.timeline +
+        '\n\nRequirement details:\n' + (d.details || '-') + '\n\nReply to this email to answer the client directly.';
+      const opt = { name: 'Retail Freelancer website' };
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(d.email || ''))) opt.replyTo = String(d.email);
+      MailApp.sendEmail(NOTIFY_EMAIL, 'New project request: ' + clean_(d.name, 60) + (d.project ? ' – ' + clean_(d.project, 60) : ''), body, opt);
     } else if (d.type === 'rating') {
       const stars = Math.max(1, Math.min(5, Number(d.stars) || 0));
       ss.getSheetByName('Ratings').appendRow([new Date(), stars, clean_(d.name, 100), clean_(d.company, 150), clean_(d.comments, 800), 'No']);
