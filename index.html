@@ -364,6 +364,29 @@ const SHEET_API = "https://script.google.com/macros/s/AKfycbxqqTp04k9bAYVfILfHGz
 const sheetOn = () => /^https:\/\/script\.google\.com\//.test(SHEET_API);
 function saveToSheet(data){ if(!sheetOn()) return Promise.resolve(false);
   return fetch(SHEET_API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({page:location.href},data))}).then(()=>true).catch(()=>false); }
+// ===== VISITOR LOG (anonymous: no IP, no cookies; one row per visit/session) =====
+(function(){
+  const S=(fn,d)=>{try{return fn()}catch(e){return d}};
+  if(location.hash==='#me'){S(()=>localStorage.setItem('rf_owner','1'));}
+  if(S(()=>localStorage.getItem('rf_owner'),null)==='1') return;          // don't count the owner's own visits
+  if(/bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent)) return;
+  if(S(()=>sessionStorage.getItem('rf_visit'),null)) return;               // once per browser session
+  S(()=>sessionStorage.setItem('rf_visit','1'));
+  let id=S(()=>localStorage.getItem('rf_vid'),null), returning=!!id;
+  if(!id){id=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); S(()=>localStorage.setItem('rf_vid',id));}
+  const started=Date.now(); let sent=false;
+  const send=()=>{ if(sent) return; sent=true;
+    const ua=navigator.userAgent, mob=/Mobi|Android|iPhone|iPad/i.test(ua);
+    const ref=S(()=>document.referrer?new URL(document.referrer).hostname:'','');
+    const q=new URLSearchParams(location.search);
+    saveToSheet({type:'visit', visitor:id, returning, tz:S(()=>Intl.DateTimeFormat().resolvedOptions().timeZone,''),
+      lang:navigator.language||'', device:mob?'Mobile':'Desktop', screen:screen.width+'x'+screen.height,
+      referrer:ref===location.hostname?'':ref, source:q.get('utm_source')||''});
+  };
+  // send after 3 s on the page (filters instant bounces/bots) or when they leave, whichever first
+  setTimeout(send,3000);
+  addEventListener('pagehide',()=>{ if(Date.now()-started>=1500) send(); });
+})();
 
 const IMG=JSON.parse(document.getElementById('img-data').textContent);
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
